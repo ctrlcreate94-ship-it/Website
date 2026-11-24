@@ -1,5 +1,9 @@
 # Parivaar Photography
 
+## GitHub Pages
+
+The `main` branch deploys the static website to `https://ctrlcreate94-ship-it.github.io/Website/` using GitHub Actions. The Pages build omits `admin.html` because the admin interface requires the Node API and Nextcloud credentials. The gallery shows its built-in portfolio images on Pages; images published through the admin API require the Ubuntu deployment below.
+
 ## Portfolio admin
 
 The admin page browses images in a configured Nextcloud folder and copies selected images into a persistent public-media directory. The website reads the published image catalog from the API. Nextcloud credentials are only used by the Node server and must never be added to frontend code.

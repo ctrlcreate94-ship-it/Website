@@ -5,7 +5,8 @@ import { defineConfig } from "vite";
 const root = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
-  base: "/ParivaarWebsite/",
+  // Keep the existing local preview path; GitHub Pages uses the new main repo path.
+  base: process.env.GITHUB_PAGES === "true" ? "/Website/" : "/ParivaarWebsite/",
   server: {
     proxy: {
       "/api": "http://127.0.0.1:3001",
