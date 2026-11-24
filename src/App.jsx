@@ -359,7 +359,7 @@ function About() {
           <p className="eyebrow"><span className="eyebrow__line" /> A little about us</p>
         </div>
         <div className="about__portrait">
-          <img src={`${BASE_URL}images/portfolio/engagement-02.jpg`} alt="A couple sharing a close moment in the garden" loading="lazy" />
+          <img src={`${BASE_URL}images/about-wedding-hands.jpg`} alt="Close-up of the couple’s hands with wedding jewelry and henna during the ceremony" loading="lazy" />
         </div>
         <div className="about__body">
           <h2 id="about-title">Celebrations with<br />soul, captured with <em>care.</em></h2>
