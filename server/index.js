@@ -23,6 +23,7 @@ const maxImageBytes = 30 * 1024 * 1024;
 const cookieName = "parivaar_admin";
 const sessionDurationMs = 8 * 60 * 60 * 1000;
 const loginFailures = new Map();
+const contactSubmissions = new Map();
 const app = express();
 
 const nextcloudConfigured = Boolean(
@@ -37,6 +38,18 @@ const webdav = nextcloudConfigured
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
+app.use((request, response, next) => {
+  const origin = request.get("origin");
+  const allowedOrigin = process.env.CONTACT_ALLOWED_ORIGIN || "https://ctrlcreate94-ship-it.github.io";
+  if (origin === allowedOrigin) {
+    response.set("Access-Control-Allow-Origin", allowedOrigin);
+    response.set("Vary", "Origin");
+    response.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    response.set("Access-Control-Allow-Headers", "Content-Type");
+  }
+  if (request.method === "OPTIONS") return response.sendStatus(origin === allowedOrigin ? 204 : 403);
+  next();
+});
 app.use(express.json({ limit: "32kb" }));
 app.use(
   "/media",
@@ -132,6 +145,71 @@ function checkLoginLimit(request, response) {
   if (current && current.expiresAt <= Date.now()) loginFailures.delete(key);
   return true;
 }
+
+function checkContactLimit(request, response) {
+  const key = request.ip;
+  const current = contactSubmissions.get(key);
+  if (current && current.expiresAt > Date.now() && current.count >= 5) {
+    response.status(429).json({ error: "Too many enquiries. Please wait before trying again." });
+    return false;
+  }
+  contactSubmissions.set(key, {
+    count: current?.expiresAt > Date.now() ? current.count + 1 : 1,
+    expiresAt: current?.expiresAt > Date.now() ? current.expiresAt : Date.now() + 15 * 60 * 1000,
+  });
+  return true;
+}
+
+app.post("/api/contact", async (request, response) => {
+  const { RESEND_API_KEY, RESEND_FROM_EMAIL } = process.env;
+  if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) {
+    return response.status(503).json({ error: "The enquiry email service is not configured." });
+  }
+  if (!checkContactLimit(request, response)) return;
+
+  const { name, email, phone, needs, message, company } = request.body || {};
+  if (company) return response.status(200).json({ success: true });
+  if (typeof name !== "string" || !name.trim() || name.length > 120
+    || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254
+    || typeof needs !== "string" || !needs.trim() || needs.length > 120
+    || typeof message !== "string" || !message.trim() || message.length > 5000
+    || (phone !== undefined && (typeof phone !== "string" || phone.length > 80))) {
+    return response.status(400).json({ error: "Please check the enquiry fields and try again." });
+  }
+
+  try {
+    const resendResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: RESEND_FROM_EMAIL,
+        to: ["photography@parivaar.co.za"],
+        reply_to: email.trim(),
+        subject: `Photography enquiry from ${name.trim()}`,
+        text: [
+          `Name: ${name.trim()}`,
+          `Email: ${email.trim()}`,
+          `Phone: ${String(phone || "Not provided").trim()}`,
+          `Photography needs: ${needs.trim()}`,
+          "",
+          "Message:",
+          message.trim(),
+        ].join("\n"),
+      }),
+    });
+    if (!resendResponse.ok) {
+      console.error("Resend rejected a contact enquiry:", resendResponse.status, await resendResponse.text());
+      return response.status(502).json({ error: "The email service could not send your enquiry. Please try again or email us directly." });
+    }
+    response.json({ success: true });
+  } catch (error) {
+    console.error("Resend contact request failed:", error);
+    response.status(502).json({ error: "The email service is temporarily unavailable. Please try again or email us directly." });
+  }
+});
 
 app.get("/api/portfolio", async (_request, response, next) => {
   try {

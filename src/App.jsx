@@ -8,7 +8,7 @@ const PHONE_NUMBER = "081 486 8063";
 const PHONE_LINK = "tel:+27814868063";
 const WHATSAPP_LINK = "https://wa.me/27814868063";
 const EMAIL_ADDRESS = "photography@parivaar.co.za";
-const FORMSUBMIT_AJAX_URL = "https://formsubmit.co/ajax/photography@parivaar.co.za";
+const CONTACT_API_URL = import.meta.env.VITE_CONTACT_API_URL || "/api";
 const EMAIL_LINK = `mailto:${EMAIL_ADDRESS}`;
 
 const portfolioProjects = [
@@ -478,38 +478,35 @@ function KindWords() {
 
 function ContactForm() {
   const [submissionStatus, setSubmissionStatus] = useState("idle");
+  const [submissionError, setSubmissionError] = useState("");
 
   async function handleSubmit(event) {
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
-    formData.set("_subject", `Photography enquiry from ${formData.get("name")}`);
-    formData.set("_replyto", String(formData.get("email") || ""));
+    const payload = Object.fromEntries(formData);
+    setSubmissionError("");
     setSubmissionStatus("sending");
 
     try {
-      const response = await fetch(FORMSUBMIT_AJAX_URL, {
+      const response = await fetch(`${CONTACT_API_URL.replace(/\/$/, "")}/contact`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(Object.fromEntries(formData)),
+        body: JSON.stringify(payload),
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
 
-      if (typeof result.message === "string" && result.message.toLowerCase().includes("activation")) {
-        setSubmissionStatus("activation");
-        return;
-      }
-
-      if (!response.ok || (result.success !== true && result.success !== "true")) {
-        throw new Error("FormSubmit could not send the enquiry.");
+      if (!response.ok || result.success !== true) {
+        throw new Error(result.error || "The email service could not send your enquiry.");
       }
 
       form.reset();
       setSubmissionStatus("success");
-    } catch {
+    } catch (error) {
+      setSubmissionError(error instanceof Error ? error.message : "Please try again or email us directly.");
       setSubmissionStatus("error");
     }
   }
@@ -547,6 +544,10 @@ function ContactForm() {
           <span>Your message <i>*</i></span>
           <textarea name="message" rows="3" placeholder="A little about the occasion and what you have in mind..." required />
         </label>
+        <label className="contact-form__honeypot" aria-hidden="true">
+          Leave this field empty
+          <input name="company" tabIndex={-1} autoComplete="off" />
+        </label>
       </div>
       <div className="contact-form__footer">
         <p className={`contact-form__status contact-form__status--${submissionStatus}`} aria-live="polite" role="status">
@@ -562,8 +563,7 @@ function ContactForm() {
           <span>
             {submissionStatus === "sending" && "Sending your enquiry..."}
             {submissionStatus === "success" && "Thanks, your enquiry has been submitted. We’ll be in touch soon."}
-            {submissionStatus === "activation" && `Check ${EMAIL_ADDRESS} for FormSubmit’s activation email. Click its link, then submit your enquiry again.`}
-            {submissionStatus === "error" && `We couldn’t send your enquiry. Please try again or email ${EMAIL_ADDRESS}.`}
+            {submissionStatus === "error" && `${submissionError} If it continues, email ${EMAIL_ADDRESS}.`}
             {submissionStatus === "idle" && "Your enquiry will be sent directly from this form."}
           </span>
         </p>

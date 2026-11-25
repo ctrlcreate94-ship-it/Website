@@ -36,6 +36,7 @@ jobs:
         run: npm run build
         env:
           GITHUB_PAGES: "true"
+          VITE_CONTACT_API_URL: ${{ vars.VITE_CONTACT_API_URL }}
       - name: Exclude the server-only admin page
         run: rm -f dist/admin.html
       - name: Upload Pages artifact

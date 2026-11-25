@@ -37,3 +37,9 @@ location /media/ {
 Build the site with `npm run build`, point the web server's document root at `dist`, and keep the API running with a systemd service or another process manager. The admin page is `/admin.html`. In local development, run `npm run start:api` and `npm run dev` in separate terminals; Vite proxies `/api` and `/media` to the local API.
 
 Only JPEG, PNG, WebP, GIF, and AVIF images up to 30 MB can be published. Publishing copies a selected image from Nextcloud into the persistent public directory; the copy is publicly viewable, while the Nextcloud source folder remains private.
+
+## Contact form email
+
+The contact form posts to `/api/contact` on the Node API. The API sends the message through Resend to `photography@parivaar.co.za`; the Resend API key stays on the server. GitHub Pages cannot run the Node API, so the Ubuntu API must be publicly reachable over HTTPS and reverse proxy `/api/` to port `3001`. Configure `RESEND_API_KEY` and a verified sender address in the server's `.env`, then configure the GitHub Actions repository variable `VITE_CONTACT_API_URL` to the API base URL ending in `/api` (for example `https://api.example.co.za/api`). Set `CONTACT_ALLOWED_ORIGIN` to the exact website origin, without a path. Never put the Resend API key in a `VITE_` variable or frontend file.
+
+Before production sending, add and verify `parivaar.co.za` in Resend and publish the DNS records Resend provides. Use a sender address on the verified domain, such as `website@parivaar.co.za`, and keep the visitor's address in Reply-To.
