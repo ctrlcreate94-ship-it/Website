@@ -8,6 +8,7 @@ const PHONE_NUMBER = "081 486 8063";
 const PHONE_LINK = "tel:+27814868063";
 const WHATSAPP_LINK = "https://wa.me/27814868063";
 const EMAIL_ADDRESS = "photography@parivaar.co.za";
+const FORMSUBMIT_AJAX_URL = "https://formsubmit.co/ajax/photography@parivaar.co.za";
 const EMAIL_LINK = `mailto:${EMAIL_ADDRESS}`;
 
 const portfolioProjects = [
@@ -483,10 +484,11 @@ function ContactForm() {
     const form = event.currentTarget;
     const formData = new FormData(form);
     formData.set("_subject", `Photography enquiry from ${formData.get("name")}`);
+    formData.set("_replyto", String(formData.get("email") || ""));
     setSubmissionStatus("sending");
 
     try {
-      const response = await fetch(`https://formsubmit.co/ajax/${EMAIL_ADDRESS}`, {
+      const response = await fetch(FORMSUBMIT_AJAX_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
