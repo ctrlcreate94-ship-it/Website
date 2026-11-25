@@ -8,7 +8,7 @@ const PHONE_NUMBER = "081 486 8063";
 const PHONE_LINK = "tel:+27814868063";
 const WHATSAPP_LINK = "https://wa.me/27814868063";
 const EMAIL_ADDRESS = "photography@parivaar.co.za";
-const CONTACT_API_URL = import.meta.env.VITE_CONTACT_API_URL || "/api";
+const CONTACT_API_URL = import.meta.env.VITE_CONTACT_API_URL || "https://www.parivaar.co.za/api";
 const EMAIL_LINK = `mailto:${EMAIL_ADDRESS}`;
 
 const portfolioProjects = [
@@ -494,6 +494,7 @@ function ContactForm() {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
+          "X-Requested-With": "parivaarcloud",
         },
         body: JSON.stringify(payload),
       });
